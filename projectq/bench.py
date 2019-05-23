@@ -1,108 +1,90 @@
 #!/usr/bin/env python
 import numpy as np
-import time, fire
+import time
 from contexts import ProjectQContext
 from projectq import ops
 
 import mkl
 mkl.set_num_threads(1)
 
-def qbenchmark(func, num_bit, num_bench=1000):
-    with ProjectQContext(num_bit, 'simulate') as cc:
+import pytest
+from functools import wraps
+
+def run_bench(benchmark, G, locs, nbit):
+    if nbit==5:
+        benchmark.group = "small"
+    elif nbit==10:
+        benchmark.group = "medium"
+    elif nbit==20:
+        benchmark.group = "large"
+    else:
+        raise
+    with ProjectQContext(nbit, 'simulate') as cc:
         qureg = cc.qureg
         eng = qureg.engine
-        t0 = time.time()
-        for i in range(num_bench):
-            func(qureg)
-            eng.flush()
-        t1 = time.time()
-    return (t1-t0)/num_bench
+        qi = take_locs(qureg, locs)
+        benchmark(run_gate, eng, G, qi)
 
-def bG(G):
-    return lambda qureg: G|qureg[2]
-def bCG(G):
-    return lambda qureg: ops.C(G)|(qureg[2], qureg[5])
-def bRot(G):
-    return lambda qureg: G(0.5)|qureg[2]
-def bCRot(G):
-    return lambda qureg: ops.C(G(0.5))|(qureg[2], qureg[5])
-def bToffoli():
-    return lambda qureg: ops.Toffoli |(qureg[2], qureg[3], qureg[5])
-def bRG(G):
-    return lambda qureg: ops.Tensor(G)|qureg[2:8]
-def bGrover():
-    pass
-def bFFT():
-    pass
-def bTE():
-    pass
+def take_locs(qureg, locs):
+    if isinstance(locs, int):
+        return qureg[locs]
+    elif isinstance(locs, tuple):
+        return tuple(qureg[loc] for loc in locs)
+    elif isinstance(locs, slice):
+        return qureg[sls]
+    else:
+        raise
 
-NL = range(10, 28, 3)
+def run_gate(eng, G, qi):
+    G | qi
+    eng.flush()
 
-class BenchMark():
-    def xyz(self):
-        tl = []
-        for nsite, num_bench in zip(NL, [1000, 1000, 1000, 100, 10, 5]):
-            print('========== N: %d ============'%nsite)
-            for func in [bG(ops.X), bG(ops.Y), bG(ops.Z)]:
-                tl.append(qbenchmark(func, nsite, num_bench)*1e6)
-        np.savetxt('xyz-report.dat', tl)
+################### Tests #################
+nbit_list = [5, 10, 20]
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_X(benchmark, nbit):
+    run_bench(benchmark, ops.X, 2, nbit)
 
-    def cxyz(self):
-        tl = []
-        for nsite, num_bench in zip(NL, [1000, 1000, 1000, 100, 10, 5]):
-            print('========== N: %d ============'%nsite)
-            for func in [bCG(ops.X), bCG(ops.Y), bCG(ops.Z)]:
-                tl.append(qbenchmark(func, nsite, num_bench)*1e6)
-        np.savetxt('cxyz-report.dat', tl)
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_Y(benchmark, nbit):
+    run_bench(benchmark, ops.Y, 2, nbit)
 
-    def repeatxyz(self):
-        tl = []
-        for nsite, num_bench in zip(NL, [1000, 1000, 1000, 100, 10, 5]):
-            print('========== N: %d ============'%nsite)
-            for func in [bRG(ops.X), bRG(ops.Y), bRG(ops.Z)]:
-                tl.append(qbenchmark(func, nsite, num_bench)*1e6)
-        np.savetxt('repeatxyz-report.dat', tl)
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_Z(benchmark, nbit):
+    run_bench(benchmark, ops.Z, 2, nbit)
 
-    def hgate(self):
-        tl = []
-        for nsite, num_bench in zip(NL, [1000, 1000, 1000, 100, 10, 5]):
-            print('========== N: %d ============'%nsite)
-            for func in [bG(ops.H), bCG(ops.H), bRG(ops.H)]:
-                tl.append(qbenchmark(func, nsite, num_bench)*1e6)
-        np.savetxt('h-report.dat', tl)
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_H(benchmark, nbit):
+    run_bench(benchmark, ops.H, 2, nbit)
 
-    def rot(self):
-        tl = []
-        for nsite, num_bench in zip(NL, [1000, 1000, 1000, 100, 10, 5]):
-            print('========== N: %d ============'%nsite)
-            for func in [bRot(ops.Rx), bRot(ops.Ry), bRot(ops.Rz)]:
-                tl.append(qbenchmark(func, nsite, num_bench)*1e6)
-        np.savetxt('rot-report.dat', tl)
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_Rx(benchmark, nbit):
+    run_bench(benchmark, ops.Rx(0.5), 2, nbit)
 
-    def crot(self):
-        tl = []
-        for nsite, num_bench in zip(NL, [1000, 1000, 1000, 100, 10, 5]):
-            print('========== N: %d ============'%nsite)
-            for func in [bCRot(ops.Rx), bCRot(ops.Ry), bCRot(ops.Rz)]:
-                tl.append(qbenchmark(func, nsite, num_bench)*1e6)
-        np.savetxt('crot-report.dat', tl)
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_Ry(benchmark, nbit):
+    run_bench(benchmark, ops.Ry(0.5), 2, nbit)
 
-    def toffoli(self):
-        tl = []
-        for nsite, num_bench in zip(NL, [1000, 1000, 1000, 100, 10, 5]):
-            print('========== N: %d ============'%nsite)
-            for func in [bToffoli()]:
-                tl.append(qbenchmark(func, nsite, num_bench)*1e6)
-        np.savetxt('toffoli-report.dat', tl)
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_Rz(benchmark, nbit):
+    run_bench(benchmark, ops.Rz(0.5), 2, nbit)
 
-    def all(self):
-        self.xyz()
-        self.cxyz()
-        self.repeatxyz()
-        self.hgate()
-        self.rot()
-        self.toffoli()
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_CX(benchmark, nbit):
+    run_bench(benchmark, ops.CNOT, (2,4), nbit)
 
-if __name__ == '__main__':
-    fire.Fire(BenchMark)
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_CY(benchmark, nbit):
+    run_bench(benchmark, ops.C(ops.Y), (2,4), nbit)
+
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_CZ(benchmark, nbit):
+    run_bench(benchmark, ops.C(ops.Z), (2,4), nbit)
+
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_CH(benchmark, nbit):
+    run_bench(benchmark, ops.C(ops.H), (2,4), nbit)
+
+@pytest.mark.parametrize('nbit', nbit_list)
+def test_Toffoli(benchmark, nbit):
+    run_bench(benchmark, ops.Toffoli, (2,3,4), nbit)
