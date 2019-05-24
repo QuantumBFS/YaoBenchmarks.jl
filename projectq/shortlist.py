@@ -69,12 +69,12 @@ def test_Toffoli(benchmark, nbit):
     benchmark.group = "Toffoli"
     run_bench(benchmark, ops.Toffoli, (2,3,0), nbit)
 
-@pytest.mark.parametrize('nbit', nbit_list)
+@pytest.mark.parametrize('nbit', range(4,16))
 def test_Measure(benchmark, nbit):
     benchmark.group = "Measure"
     run_bench(benchmark, ops.All(ops.Measure), None, nbit)
 
-@pytest.mark.parametrize('nbit', range(4,13))
+@pytest.mark.parametrize('nbit', range(4,16))
 def test_TimeEvolution(benchmark, nbit):
     benchmark.group = "TimeEvolution"
     run_bench(benchmark, ops.TimeEvolution(1.0, ising_hamiltonian(nbit)), None, nbit)

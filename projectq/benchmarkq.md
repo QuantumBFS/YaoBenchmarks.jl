@@ -63,14 +63,14 @@ $ pip install pytest-benchmark
 $ pip install -U projectQ
 $ pip install pygal pygaljs
 
-$ pytest shortlist.py --benchmark-histogram=0.4.2/projectq-short --benchmark-sort=name
+$ OMP_NUM_THREADS=1 pytest shortlist.py --benchmark-histogram=0.4.2/projectq-short --benchmark-sort=name
 
 # or for the long list
-# $ pytest longlist.py --benchmark-histogram=0.4.2/projectq-long --benchmark-sort=name
+# $ OMP_NUM_THREADS=1 pytest longlist.py --benchmark-histogram=0.4.2/projectq-long --benchmark-sort=name
 
 # QCBM
 $ git clone git@github.com:GiggleLiu/QuantumCircuitBornMachine.git
 $ cd QuantumCircuitBornMachine
 $ git checkout benchmarkq
-$ python qcbm_benchmark.py
+$ OMP_NUM_THREADS=1 python qcbm_benchmark.py
 ```
