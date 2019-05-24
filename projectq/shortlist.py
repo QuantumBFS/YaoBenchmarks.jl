@@ -69,7 +69,7 @@ def test_Toffoli(benchmark, nbit):
     benchmark.group = "Toffoli"
     run_bench(benchmark, ops.Toffoli, (2,3,0), nbit)
 
-@pytest.mark.parametrize('nbit', range(4,16))
+@pytest.mark.parametrize('nbit', nbit_list)
 def test_Measure(benchmark, nbit):
     benchmark.group = "Measure"
     run_bench(benchmark, ops.All(ops.Measure), None, nbit)
