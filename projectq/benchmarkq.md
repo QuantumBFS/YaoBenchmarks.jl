@@ -39,3 +39,14 @@ NUMA 节点0 CPU： 0-3
 ## Large Size (20 qubit)
 
 ![projectq-small](0.4.2/projectq-large.svg)
+
+
+## To Run
+```bash
+pip install pytest-benchmark
+pip install -U projectQ
+pip install pygal pygaljs
+
+pytest shortlist.py --benchmark-histogram=0.4.2/projectq-short --benchmark-sort=name
+pytest longlist.py --benchmark-histogram=0.4.2/projectq-long --benchmark-sort=name
+```
